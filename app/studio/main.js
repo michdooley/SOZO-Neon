@@ -76,25 +76,119 @@ function rememberTuning() {
 let patternIds = [...PATTERNS];
 const liById = new Map();
 
+// The SozoBasic gallery, in firmware GAL_PATTERNS order. These render as a
+// numbered "folder" with a ▶ Play control that runs the whole sequence — fade
+// in, hold, fade out, next, loop — just like the firmware's gallery stage.
+const GALLERY_IDS = [...PATTERNS];
+const collapsed = new Set();
+
+// Gallery-player state (defined here because buildList() reads it at load time;
+// the player's functions live further down, near the render loop). Firmware runs
+// 120 s per pattern with a 5 s fade; the preview defaults are shorter so it's
+// watchable — both are adjustable in the folder header.
+const GAL_KEY = 'sozo_studio_gallery';
+const gallery = { active: false, clips: [], idx: 0, clipStart: 0, lastNow: 0, holdSec: 8, fadeSec: 1.5 };
+(function loadGalleryCfg() {
+  try { Object.assign(gallery, JSON.parse(localStorage.getItem(GAL_KEY)) || {}); } catch { /* ignore */ }
+  gallery.active = false; gallery.clips = []; gallery.idx = 0;   // never persist runtime state
+})();
+
+function makeMemberLi(id, number) {
+  const li = document.createElement('li');
+  li.dataset.id = id;
+  li.className = 'in-group';
+  li.classList.toggle('active', current && current.id === id);
+  if (number != null) {
+    const num = document.createElement('span');
+    num.className = 'pnum';
+    num.textContent = String(number).padStart(2, '0');
+    li.appendChild(num);
+  }
+  const name = document.createElement('span');
+  name.className = 'pname';
+  name.textContent = PRETTY(id);
+  const badge = document.createElement('span');
+  badge.className = 'badge';
+  li.append(name, badge);
+  li.addEventListener('click', () => selectPattern(id));
+  listEl.appendChild(li);
+  liById.set(id, { li, badge });
+  updateBadge(id);
+}
+
+function makeGroupHeader(key, title, count, withPlay) {
+  const li = document.createElement('li');
+  li.className = 'group-header';
+  const caret = document.createElement('span');
+  caret.className = 'caret';
+  caret.textContent = collapsed.has(key) ? '▸' : '▾';
+  const label = document.createElement('span');
+  label.className = 'gname';
+  label.textContent = title;
+  const cnt = document.createElement('span');
+  cnt.className = 'gcount';
+  cnt.textContent = String(count);
+  li.append(caret, label, cnt);
+  if (withPlay) {
+    const play = document.createElement('button');
+    play.className = 'play-btn';
+    play.id = 'galleryPlay';
+    play.textContent = gallery.active ? '⏹' : '▶';
+    play.title = 'Play the whole gallery in sequence, like SozoBasic';
+    play.addEventListener('click', (ev) => { ev.stopPropagation(); toggleGallery(); });
+    li.appendChild(play);
+  }
+  li.addEventListener('click', () => {
+    if (collapsed.has(key)) collapsed.delete(key); else collapsed.add(key);
+    buildList();
+  });
+  listEl.appendChild(li);
+}
+
+// Compact per-gallery timing controls (sec/pattern + fade). Firmware runs 120 s
+// per pattern with a 5 s fade; the preview defaults are shorter so it's watchable.
+function makeGalleryControls() {
+  const li = document.createElement('li');
+  li.className = 'group-controls';
+  const mk = (label, key, min, max, step) => {
+    const w = document.createElement('label');
+    w.className = 'gc';
+    const s = document.createElement('span');
+    s.textContent = label;
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.min = min; inp.max = max; inp.step = step; inp.value = gallery[key];
+    inp.addEventListener('click', (ev) => ev.stopPropagation());
+    inp.addEventListener('change', () => {
+      const v = parseFloat(inp.value);
+      if (!Number.isNaN(v)) { gallery[key] = v; saveGalleryCfg(); }
+    });
+    w.append(s, inp);
+    return w;
+  };
+  li.append(mk('sec / pattern', 'holdSec', 0.5, 300, 0.5), mk('fade (s)', 'fadeSec', 0, 30, 0.5));
+  listEl.appendChild(li);
+}
+
 function buildList() {
   listEl.innerHTML = '';
   liById.clear();
-  for (const id of patternIds) {
-    const li = document.createElement('li');
-    li.dataset.id = id;
-    li.classList.toggle('active', current && current.id === id);
-    const name = document.createElement('span');
-    name.className = 'pname';
-    name.textContent = PRETTY(id);
-    const badge = document.createElement('span');
-    badge.className = 'badge';
-    li.append(name, badge);
-    li.addEventListener('click', () => selectPattern(id));
-    listEl.appendChild(li);
-    liById.set(id, { li, badge });
-    updateBadge(id);
+  const inGallery = GALLERY_IDS.filter((id) => patternIds.includes(id));
+  const extras = patternIds.filter((id) => !GALLERY_IDS.includes(id));
+
+  if (inGallery.length) {
+    makeGroupHeader('gallery', 'SozoBasic Gallery', inGallery.length, true);
+    if (!collapsed.has('gallery')) {
+      makeGalleryControls();
+      inGallery.forEach((id, i) => makeMemberLi(id, i + 1));
+    }
+  }
+  if (extras.length) {
+    makeGroupHeader('workspace', 'Workspace', extras.length, false);
+    if (!collapsed.has('workspace')) extras.forEach((id) => makeMemberLi(id, null));
   }
   applyFilter();
+  highlightGallery();
 }
 
 // Pull the live pattern list from serve.py; keep built-ins in manifest order and
@@ -137,12 +231,16 @@ function updateBadge(id) {
 
 function applyFilter() {
   let shown = 0;
+  let rendered = 0;
   for (const id of patternIds) {
+    const ref = liById.get(id);
+    if (!ref) continue;              // member lives in a collapsed group
+    rendered++;
     const vis = reviews.passesFilter(id);
-    liById.get(id).li.style.display = vis ? '' : 'none';
+    ref.li.style.display = vis ? '' : 'none';
     if (vis) shown++;
   }
-  filterCountEl && (filterCountEl.textContent = shown < patternIds.length ? `${shown}/${patternIds.length} shown` : '');
+  filterCountEl && (filterCountEl.textContent = shown < rendered ? `${shown}/${rendered} shown` : '');
 }
 
 reviews.loadReviews();
@@ -160,6 +258,7 @@ reviews.seedFromServer(new URL('./reviews.json', import.meta.url)).then((seeded)
 });
 
 async function selectPattern(id) {
+  if (gallery.active) { gallery.active = false; highlightGallery(); }
   for (const li of listEl.children) li.classList.toggle('active', li.dataset.id === id);
   setStatus(`loading ${id}…`);
   let source;
@@ -608,9 +707,116 @@ function buildDimControls() {
 }
 buildDimControls();
 
+// ---------- gallery player ----------
+// Plays the whole SozoBasic gallery in order, mirroring the firmware's gallery
+// stage: each pattern fades in, holds, fades out, then the next begins; loops
+// forever. Runs from its own compiled clips (with your saved tuning baked in),
+// independent of the currently-selected pattern. (State object is defined up top,
+// next to GALLERY_IDS, because buildList() reads it at load time.)
+function saveGalleryCfg() {
+  try { localStorage.setItem(GAL_KEY, JSON.stringify({ holdSec: gallery.holdSec, fadeSec: gallery.fadeSec })); } catch { /* ignore */ }
+}
+
+// Compile one pattern into a self-contained clip, applying saved tuning + any
+// reversal — the same resolution selectPattern() does, but without touching the
+// DOM or the current selection.
+async function buildClip(id) {
+  const url = new URL(`../patterns/${id}/${id}.ino`, import.meta.url);
+  const source = await (await fetch(url)).text();
+  let compiled = transpile(source);
+  const params = {};
+  for (const c of compiled.consts) if (c.editable) params[c.name] = c.number;
+  const cached = tuning[id];
+  if (cached?.params) for (const k in cached.params) if (k in params) params[k] = cached.params[k];
+  let useParams = params;
+  const spec = DIRECTIONAL[id] || null;
+  if (cached?.reversed && spec) {
+    if (spec.source) { const cr = transpile(spec.source(source)); if (cr.ok) compiled = cr; }
+    else if (spec.negate) { useParams = { ...params }; for (const n of spec.negate) if (n in useParams) useParams[n] = -useParams[n]; }
+  }
+  const state = compiled.ok ? compiled.makeState(useParams) : null;
+  return { id, compiled, params: useParams, state };
+}
+
+function toggleGallery() { gallery.active ? stopGallery() : startGallery(); }
+
+async function startGallery() {
+  const ids = GALLERY_IDS.filter((id) => patternIds.includes(id));
+  if (!ids.length) { setStatus('no gallery patterns to play'); return; }
+  setStatus('loading gallery…');
+  try {
+    const clips = [];
+    for (const id of ids) {
+      const clip = await buildClip(id);
+      if (clip.compiled.ok) clips.push(clip);   // skip any that can't preview
+    }
+    if (!clips.length) { setStatus('no playable gallery patterns'); return; }
+    gallery.clips = clips;
+    gallery.idx = 0;
+    gallery.clipStart = performance.now();
+    gallery.lastNow = gallery.clipStart;
+    gallery.active = true;
+    highlightGallery();
+  } catch (e) {
+    setStatus('gallery load failed: ' + e.message);
+  }
+}
+
+function stopGallery() {
+  gallery.active = false;
+  highlightGallery();
+  if (current) resetState();   // hand the preview back to the selected pattern
+  setStatus('gallery stopped');
+}
+
+// Reflect play state in the ▶/⏹ button and highlight the playing member row.
+function highlightGallery() {
+  const activeId = gallery.active && gallery.clips[gallery.idx] ? gallery.clips[gallery.idx].id : null;
+  for (const [id, ref] of liById) ref.li.classList.toggle('playing', id === activeId);
+  const btn = document.getElementById('galleryPlay');
+  if (btn) btn.textContent = gallery.active ? '⏹' : '▶';
+}
+
+function tickGallery() {
+  const now = performance.now();
+  const dt = Math.min((now - gallery.lastNow) / 1000, 0.1);
+  gallery.lastNow = now;
+
+  const fade = gallery.fadeSec;
+  const hold = gallery.holdSec;
+  const total = 2 * fade + hold;          // fade in + hold + fade out
+  let elapsed = (now - gallery.clipStart) / 1000;
+
+  if (elapsed >= total) {                 // advance to the next pattern, looping
+    gallery.idx = (gallery.idx + 1) % gallery.clips.length;
+    gallery.clipStart = now;
+    elapsed = 0;
+    const nc = gallery.clips[gallery.idx];
+    if (nc.compiled.ok) nc.state = nc.compiled.makeState(nc.params);
+    highlightGallery();
+  }
+
+  const clip = gallery.clips[gallery.idx];
+  let env = 1;                            // brightness envelope 0..1
+  if (fade > 0) {
+    if (elapsed < fade) env = elapsed / fade;
+    else if (elapsed > fade + hold) env = Math.max(0, 1 - (elapsed - fade - hold) / fade);
+  }
+
+  out.fill(0);
+  try { clip.compiled.step(elapsed, dt, clip.params, clip.state, out); }
+  catch (err) { setStatus('gallery render error: ' + err.message); }
+  if (env < 1) for (let i = 0; i < out.length; i++) out[i] = Math.round(out[i] * env);
+  applyDimMask(out);
+  for (let i = 0; i < out.length; i++) setLed(i, out[i]);
+  maybeSend(out);
+  setStatus(`▶ gallery ${gallery.idx + 1}/${gallery.clips.length} — ${clip.id}`);
+}
+
 // ---------- render loop ----------
 function tick() {
   requestAnimationFrame(tick);
+  if (gallery.active) { tickGallery(); return; }
   const t = (performance.now() - clockStart) / 1000;
   const dt = lastT === 0 ? 1 / 60 : Math.min(t - lastT, 0.1);
   lastT = t;

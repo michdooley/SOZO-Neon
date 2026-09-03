@@ -20,7 +20,7 @@ const float YS[NUM_LEDS] = {
     6.81f, 10.66f, 13.49f, 14.37f, 13.00f
 };
 
-const float SWING_HZ  = 0.35f;
+const float SWING_HZ  = 0.1f;
 const float SWING_AMP = 22.0f;
 const float SIGMA     = 5.5f;
 const float CY        = 5.0f;

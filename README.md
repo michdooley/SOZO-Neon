@@ -50,13 +50,13 @@ SOZO-Neon/
 │   │   ├── main.js              # UI wiring
 │   │   ├── transpile.js         # turns a pattern .ino into a live JS preview
 │   │   ├── knobs.js             # builds the parameter sliders
-│   │   ├── manifest.js          # static fallback pattern list (empty by default)
+│   │   ├── manifest.js          # pattern ordering + file:// fallback list
 │   │   ├── directional.js       # per-pattern "play it reversed" specs
 │   │   ├── reviews.js/.json     # star-ratings + notes you leave while tuning
 │   │   └── serve.py             # local web server + save/duplicate/rename/delete
-│   ├── patterns/                # ← YOUR patterns go here (starts empty)
-│   ├── refined-patterns/        # ← tuned exports land here
-│   └── examples/                # 13 reference patterns (the old SozoBasic gallery)
+│   ├── patterns/                # ← selectable/tunable patterns (ships with the 13
+│   │                            #    SozoBasic gallery patterns; add new ones here)
+│   └── refined-patterns/        # ← finalized tuned exports land here
 └── docs/
     ├── pattern-authoring-guide.md
     ├── pattern-generation.md
@@ -83,8 +83,24 @@ Then open **http://localhost:8000/studio.html**.
 > `app/refined-patterns/` and manage patterns on disk. Plain
 > `python3 -m http.server` also works, but then "Export" just downloads a file.
 
-On a **fresh clone the pattern list is empty** — that's expected. Add your first
-pattern (next section) and it appears immediately.
+The Studio opens with the **13 SozoBasic gallery patterns** already listed —
+select one to preview it in 3D and tune its sliders. Their default slider values
+match exactly what runs on the wall. To create something new, add a pattern (next
+section) and it appears immediately.
+
+### The SozoBasic Gallery folder
+
+In the left panel the 13 patterns are grouped and numbered (01–13, in firmware
+gallery order) under a collapsible **SozoBasic Gallery** folder. Any new patterns
+you add show up under a separate **Workspace** group.
+
+The **▶** button on the folder header plays the **whole gallery as a combined
+show**, exactly like the firmware's gallery stage: each pattern fades in, holds,
+fades out, and the next begins — looping forever, with your saved tuning baked in.
+The currently-playing pattern is highlighted. Two inputs under the header set the
+timing: **sec / pattern** and **fade (s)**. They default to a watchable 8 s + 1.5 s;
+set them to **120** and **5** to match the firmware exactly. Press **⏹** (or click
+any pattern) to stop and return to tuning.
 
 ---
 
@@ -134,10 +150,11 @@ Rules of the dialect (the transpiler targets exactly these):
 - Anything outside the dialect still **exports fine** — you just lose the live
   preview (the Studio says "preview unavailable").
 
-The fastest way to start: **copy an example.**
+The fastest way to start: **duplicate one of the 13 shipped patterns** — use the
+Studio's **⧉ Duplicate…** button, or on disk:
 
 ```bash
-cp -R app/examples/sine_wave app/patterns/my_pattern
+cp -R app/patterns/sine_wave app/patterns/my_pattern
 mv app/patterns/my_pattern/sine_wave.ino app/patterns/my_pattern/my_pattern.ino
 # edit it, then reload the Studio
 ```
@@ -191,8 +208,10 @@ minutes remaining, counting down.
    `{ "my_thing", patternMyThing, NULL }` (the third field is an optional
    `init()` for stateful patterns — see `patternRandomFlash` / `initRandomFlash`).
 
-The 13 sketches in `app/examples/` are exactly the patterns currently baked into
-this gallery, kept as references for porting.
+The 13 patterns in `app/patterns/` are exactly the ones baked into this gallery,
+in the same order, with their Studio slider defaults set to the tunings that run
+here — so what you tune in the Studio matches the wall, and the Studio's ▶ Play
+reproduces this gallery stage.
 
 **Testing without waiting on the clock** — `SozoBasic` has a built-in serial
 console (115200 baud): `skip <mins>`, `flash`, `reset`, `status`, `stage`,
@@ -203,9 +222,11 @@ console (115200 baud): `skip <mins>`, `flash`, `reset`, `status`, `stage`,
 
 ## Notes for whoever picks this up
 
-- **`app/patterns/` is your workspace**; **`app/refined-patterns/` is finalized
-  exports**; **`app/examples/` is read-only reference** (the old gallery). These
-  are intentionally separate.
+- **`app/patterns/` is the Studio's working set** — it ships with the 13
+  SozoBasic gallery patterns (selectable + tunable) and is where new patterns go.
+  **`app/refined-patterns/` is finalized exports** (separate). Tuning a shipped
+  pattern and exporting it writes to `refined-patterns/`, leaving the original in
+  `patterns/` untouched.
 - The Studio's 3D preview and the firmware share the same physical tube layout
   but express it differently (the preview uses SVG-derived positions in
   `scene.js`; patterns and firmware use the `XS/YS` inch coordinates). Keep them

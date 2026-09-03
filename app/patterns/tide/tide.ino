@@ -14,7 +14,7 @@ const float XS[NUM_LEDS] = {
    17.72f, 18.20f, 19.33f, 21.75f, 24.16f
 };
 
-const float TIDE_HZ = 0.12f;
+const float TIDE_HZ = 0.225f;
 const float X_HALF  = 25.0f;     // normalize x to roughly [-1, 1]
 const float BASE    = 0.08f;
 const float SWING   = 0.92f;

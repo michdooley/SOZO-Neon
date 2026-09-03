@@ -9,11 +9,11 @@ const int   NUM_LEDS   = 30;
 const int   LINE1_LEN  = 15;
 const int   LINE2_LEN  = 15;
 
-const int   N_BALLS    = 3;      // @knob 1 7 1      group:Counts "Balls per line"
+const int   N_BALLS    = 2;      // @knob 1 7 1      group:Counts "Balls per line"
 const float SPEED_A    = 9.0f;   // @knob 0.5 25 0.1 group:Speed  "Line 1 speed (LEDs/s)"
 const float SPEED_B    = 7.0f;   // @knob 0.5 25 0.1 group:Speed  "Line 2 speed (LEDs/s)"
 const float SPEED_JIT  = 0.12f;  // @knob 0 0.4 0.01 group:Speed  "Speed randomness (±)"
-const float BALL_SIZE  = 1.6f;   // @knob 0.5 4 0.1  group:Shape  "Ball size (radius)"
+const float BALL_SIZE  = 1.0f;   // @knob 0.5 4 0.1  group:Shape  "Ball size (radius)"
 
 void setup() {
   Serial.begin(115200);

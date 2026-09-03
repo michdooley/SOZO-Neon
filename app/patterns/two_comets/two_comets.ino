@@ -9,9 +9,9 @@
 const int   NUM_LEDS  = 30;
 const int   LINE1_LEN = 15;
 const int   LINE2_LEN = 15;
-const float SPEED_A   = 9.0f;   // line 1 comet speed (LEDs/sec)
-const float SPEED_B   = 7.0f;   // line 2 comet speed
-const float TAIL      = 4.0f;
+const float SPEED_A   = 4.05f;   // line 1 comet speed (LEDs/sec)
+const float SPEED_B   = 3.15f;   // line 2 comet speed
+const float TAIL      = 1.56f;
 
 void setup() {
   Serial.begin(115200);

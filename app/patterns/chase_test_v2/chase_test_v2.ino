@@ -9,8 +9,8 @@ const int   LINE1_LEN   = 15;     // LEDs per line (structural; both lines are 1
 
 const float CHASE_SPEED = 8.0f;   // @knob 0.5 25 0.1 group:Speed "Speed (LEDs/s)"
 const float CHASE_TAIL  = 5.0f;   // @knob 1 12 0.5   group:Shape "Tail length"
-const float ROW_GAP     = 0.5f;   // @knob 0 5 0.05   group:Speed "Row 1→2 delay (s)"
-const float REPEAT_GAP  = 1.5f;   // @knob 0 8 0.1    group:Speed "Delay before repeat (s)"
+const float ROW_GAP     = 0.2f;   // @knob 0 5 0.05   group:Speed "Row 1→2 delay (s)"
+const float REPEAT_GAP  = 0.5f;   // @knob 0 8 0.1    group:Speed "Delay before repeat (s)"
 
 void setup() {
   Serial.begin(115200);

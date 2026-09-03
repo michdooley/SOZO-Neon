@@ -22,11 +22,11 @@ const float YS[NUM_LEDS] = {
 
 const float OX        = 18.20f;
 const float OY        = 10.66f;
-const float RING_W    = 3.5f;    // ring thickness (inches)
-const float RING_HZ   = 0.55f;   // new ring spawned every 1/RING_HZ seconds
-const float RING_VEL  = 14.0f;   // ring expansion speed (inches/sec)
-const float MAX_R     = 50.0f;
-const int   N_RINGS   = 4;       // simultaneous rings on screen
+const float RING_W    = 5.88f;    // ring thickness (inches)
+const float RING_HZ   = 0.5527f;   // new ring spawned every 1/RING_HZ seconds
+const float RING_VEL  = 19.74f;   // ring expansion speed (inches/sec)
+const float MAX_R     = 72.0f;
+const int   N_RINGS   = 9;       // simultaneous rings on screen
 
 void setup() {
   Serial.begin(115200);

@@ -24,9 +24,9 @@ const float YS[NUM_LEDS] = {
     6.81f, 10.66f, 13.49f, 14.37f, 13.00f
 };
 
-const float OX     = 18.20f;   // origin (shared node, idx 26)
-const float OY     = 10.66f;
-const float PERIOD = 6.0f;     // seconds per fill+recede cycle
+const float OX     = 0.0f;   // origin = board center (matches SozoBasic firmware)
+const float OY     = 0.0f;
+const float PERIOD = 10.8f;     // seconds per fill+recede cycle
 const float MAX_R  = 50.0f;    // covers the diagonal of the board
 const float EDGE   = 3.0f;     // wavefront soft-edge width (inches)
 

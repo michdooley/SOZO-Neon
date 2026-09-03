@@ -14,8 +14,8 @@ const int STARTS[N_BUMPS] = { 0,  6, 11, 15, 20, 25 };
 const int ENDS[N_BUMPS]   = { 5, 10, 14, 19, 24, 29 };
 const int PEAKS[N_BUMPS]  = { 3,  8, 13, 19, 23, 27 };
 
-const float PULSE_DUR = 1.0f;     // seconds each bump pulse takes
-const float STAGGER   = 0.4f;     // seconds between consecutive bump starts
+const float PULSE_DUR = 1.35f;     // seconds each bump pulse takes
+const float STAGGER   = 0.228f;     // seconds between consecutive bump starts
 const float REST      = 0.7f;     // dark pause before the cycle restarts
 
 void setup() {
