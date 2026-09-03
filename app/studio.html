@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>SOZO Pattern Studio</title>
+<style>
+  :root { --accent:#a63; --accent-bg:#642; }
+  html, body { margin:0; padding:0; height:100%; background:#000; color:#ccc;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; overflow:hidden; }
+  #app { display:grid; grid-template-columns:230px 320px 1fr; height:100vh; }
+  #patterns, #controls { background:#0a0a0a; border-right:1px solid #1c1c1c;
+    padding:14px; overflow-y:auto; }
+  #preview { position:relative; overflow:hidden; }
+  h1 { font-size:12px; color:#ddd; margin:0 0 10px; text-transform:uppercase;
+    letter-spacing:.14em; font-weight:600; }
+  h2 { font-size:10px; color:#7a7a7a; margin:16px 0 7px; text-transform:uppercase;
+    letter-spacing:.14em; font-weight:500; }
+  h2:first-child { margin-top:0; }
+  .plist { list-style:none; padding:0; margin:0; }
+  .plist li { padding:6px 10px; cursor:pointer; border-radius:4px; font-size:13px; color:#aaa; }
+  .plist li:hover { background:#1a1a1a; color:#ddd; }
+  .plist li.active { background:var(--accent-bg); color:#fff; }
+  .knob { display:flex; flex-direction:column; gap:3px; margin-bottom:11px; font-size:12px; }
+  .knob-label { display:flex; justify-content:space-between; align-items:baseline; }
+  .knob-label .name { color:#aaa; }
+  .knob-row { display:flex; gap:8px; align-items:center; }
+  .knob input[type=range] { flex:1; accent-color:var(--accent); }
+  .knob input[type=number] { width:62px; background:#161616; color:#ddd; border:1px solid #333;
+    border-radius:4px; padding:3px 5px; font:inherit; font-size:11px;
+    font-variant-numeric:tabular-nums; }
+  .toggle-row { display:flex; align-items:center; gap:8px; font-size:12px; color:#bbb;
+    cursor:pointer; margin-bottom:4px; }
+  .toggle-row input[type=checkbox] { accent-color:var(--accent); transform:scale(1.15); }
+  .actions { margin-top:18px; display:flex; flex-direction:column; gap:6px; }
+  button { background:#1a1a1a; color:#ddd; border:1px solid #333; padding:7px 12px;
+    cursor:pointer; border-radius:4px; font-size:12px; font-family:inherit; text-align:left; }
+  button:hover:not(:disabled) { background:#252525; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  button.primary { background:var(--accent-bg); border-color:var(--accent); color:#fff; }
+  button.primary:hover { background:#753; }
+  button.active { background:var(--accent-bg); border-color:var(--accent); color:#fff; }
+  #status { position:absolute; bottom:12px; left:12px; right:12px; font-size:11px;
+    color:#777; pointer-events:none; line-height:1.4; }
+  #hint { position:absolute; top:12px; right:14px; font-size:11px; color:#555; pointer-events:none; }
+  #desc { font-size:11px; color:#888; line-height:1.45; margin:0 0 6px; }
+  .warn { color:#c96; font-size:11px; line-height:1.4; margin:6px 0; }
+  /* source drawer */
+  #srcWrap { position:absolute; left:0; right:0; bottom:0; max-height:45%;
+    background:#070707; border-top:1px solid #1c1c1c; display:none; flex-direction:column; }
+  #srcWrap.open { display:flex; }
+  #srcBar { display:flex; justify-content:space-between; align-items:center;
+    padding:6px 12px; font-size:11px; color:#888; border-bottom:1px solid #161616; }
+  #srcBar button { padding:3px 8px; font-size:11px; }
+  #src { margin:0; padding:10px 12px; overflow:auto; font:11px/1.5 "SF Mono",Menlo,monospace;
+    color:#b8b8b8; white-space:pre; }
+  .empty { color:#555; font-size:12px; font-style:italic; }
+
+  /* ---- left-panel filter ---- */
+  #filter { display:flex; flex-direction:column; gap:7px; margin-bottom:12px;
+    padding-bottom:12px; border-bottom:1px solid #1c1c1c; }
+  .filt-row { display:flex; align-items:center; gap:6px; }
+  .filt-label { font-size:9px; color:#666; text-transform:uppercase; letter-spacing:.12em; width:34px; flex:none; }
+  .chip { background:#161616; border:1px solid #333; color:#999; border-radius:4px;
+    padding:2px 7px; font-size:12px; cursor:pointer; text-align:center; font-family:inherit; }
+  .chip:hover { background:#222; }
+  .chip.on { background:var(--accent-bg); border-color:var(--accent); color:#fff; }
+  .chip.accept.on { background:#1f3f1f; border-color:#4a4; color:#cfc; }
+  .chip.reject.on { background:#3f1f1f; border-color:#a44; color:#fcc; }
+  .minstars { display:flex; gap:3px; }
+
+  /* ---- list badges ---- */
+  .plist li { display:flex; justify-content:space-between; align-items:center; gap:6px; }
+  .pname { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .badge { display:flex; gap:5px; align-items:center; font-size:10px; flex:none; }
+  .bflag.accept { color:#5c5; } .bflag.reject { color:#d55; }
+  .brate { color:#c93; font-variant-numeric:tabular-nums; }
+
+  /* ---- review editor ---- */
+  #review { margin-bottom:6px; }
+  .stars { display:flex; gap:3px; font-size:18px; margin-bottom:7px; }
+  .star { color:#3a3a3a; cursor:pointer; line-height:1; }
+  .star:hover { color:#777; }
+  .star.on { color:#e0a93b; }
+  .flagbtns { display:flex; gap:6px; margin-bottom:7px; }
+  .flagbtn { flex:1; text-align:center; font-size:14px; padding:5px 0; }
+  .flagbtn.accept.active { background:#1f3f1f; border-color:#4a4; color:#cfc; }
+  .flagbtn.reject.active { background:#3f1f1f; border-color:#a44; color:#fcc; }
+  .flagbtn.none.active { background:var(--accent-bg); border-color:var(--accent); color:#fff; }
+  .notes { width:100%; box-sizing:border-box; min-height:54px; resize:vertical; background:#161616;
+    color:#ddd; border:1px solid #333; border-radius:4px; padding:6px 7px; font:inherit; font-size:12px; }
+
+  /* ---- global brightness ramp ---- */
+  #globalDim { margin-top:14px; border-top:1px solid #1c1c1c; padding-top:12px; }
+  .dim-readout { margin:9px 0 0; padding:7px 8px; background:#070707; border:1px solid #1c1c1c;
+    border-radius:4px; font:10px/1.6 "SF Mono",Menlo,monospace; color:#8a8a8a; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="patterns">
+    <h1>SOZO Studio</h1>
+    <div id="filter"></div>
+    <ul class="plist" id="patternList"></ul>
+  </aside>
+  <aside id="controls">
+    <p id="desc" class="empty">Select a pattern to load its parameters.</p>
+    <div id="review"></div>
+    <div id="knobs"></div>
+    <div id="globalDim"></div>
+    <div class="actions">
+      <button id="reset">↻ Reset clock &amp; state</button>
+      <button id="revert">↺ Revert tuning to file</button>
+      <button id="toggleSrc">⟨⟩ Show Arduino source</button>
+      <button id="export" class="primary">⬇ Export to refined-patterns/</button>
+      <button id="download">⬇ Download .ino (backup)</button>
+      <button id="duplicate">⧉ Duplicate…</button>
+      <button id="rename">✎ Rename…</button>
+      <button id="delete">🗑 Delete…</button>
+      <button id="connect">⇄ Connect serial</button>
+    </div>
+  </aside>
+  <div id="preview">
+    <div id="hint">drag to orbit · scroll to zoom</div>
+    <div id="status">no pattern selected</div>
+    <div id="srcWrap">
+      <div id="srcBar">
+        <span id="srcName">pattern.ino</span>
+        <button id="copySrc">copy</button>
+      </div>
+      <pre id="src"></pre>
+    </div>
+  </div>
+</div>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="./studio/main.js"></script>
+</body>
+</html>
