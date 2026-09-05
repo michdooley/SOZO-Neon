@@ -1,1 +1,27 @@
-{}
+{
+  "bubbles_fast_af": {
+    "flag": "none",
+    "notes": "a bit cartoony",
+    "rating": 3
+  },
+  "bubbles_fast_proper": {
+    "flag": "reject",
+    "notes": "",
+    "rating": 0
+  },
+  "bubbles_slow": {
+    "flag": "accept",
+    "notes": "",
+    "rating": 0
+  },
+  "chase_test": {
+    "flag": "none",
+    "notes": "",
+    "rating": 0
+  },
+  "two_comets": {
+    "flag": "none",
+    "notes": "testing321",
+    "rating": 0
+  }
+}
