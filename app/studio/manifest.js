@@ -28,6 +28,7 @@ export const PATTERNS = [
   'clock_hands',
   'clock_minute',
   'clock_min_sec',
+  'crackling_fire',
 ];
 
 export const PRETTY = (id) =>

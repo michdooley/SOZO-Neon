@@ -28,7 +28,7 @@ const float HOUR_LVL = 0.85f;         // @knob 0 1 0.01 group:Shape "Hour tube b
 const float MIN_LVL  = 1.00f;         // @knob 0 1 0.01 group:Shape "Minute tube brightness"
 
 // --- end-of-hour minute drain -------------------------------------------
-const float FADE_SECS = 8.0f;         // @knob 0 60 0.5  group:Transition "Minute drain length (s before :00)"
+const float FADE_SECS = 4.0f;         // @knob 0 60 0.5  group:Transition "Minute drain length (s before :00) — smaller = faster"
 const float FADE_SOFT = 2.0f;         // @knob 0.5 6 0.1 group:Transition "Drain edge softness (tubes)"
 
 void setup() {
