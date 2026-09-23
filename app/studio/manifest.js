@@ -23,6 +23,12 @@ export const PATTERNS = [
   'convergence',
   'bouncing_up',
   'random_flash',
+  'bubbles_slow',
+  'bubbles_fast_proper',
+  'clock_hands',
+  'clock_minute',
+  'clock_min_sec',
+  'crackling_fire',
 ];
 
 export const PRETTY = (id) =>
