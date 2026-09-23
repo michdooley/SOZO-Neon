@@ -1,1 +1,82 @@
-{}
+{
+  "blob_gaussian": {
+    "flag": "reject",
+    "notes": "It is successful, but don't think I want it in the final rotation.",
+    "rating": 0
+  },
+  "blob_gaussian_v2": {
+    "flag": "accept",
+    "notes": "",
+    "rating": 0
+  },
+  "bouncing_up": {
+    "flag": "accept",
+    "notes": "",
+    "rating": 0
+  },
+  "bump_cascade": {
+    "flag": "reject",
+    "notes": "",
+    "rating": 0
+  },
+  "chase_test_v2": {
+    "flag": "accept",
+    "notes": "",
+    "rating": 0
+  },
+  "convergence": {
+    "flag": "reject",
+    "notes": "",
+    "rating": 0
+  },
+  "pendulum": {
+    "flag": "accept",
+    "notes": "",
+    "rating": 0
+  },
+  "ramp_across": {
+    "flag": "reject",
+    "notes": "",
+    "rating": 0
+  },
+  "random_flash": {
+    "flag": "accept",
+    "notes": "",
+    "rating": 0
+  },
+  "recede_fill": {
+    "flag": "reject",
+    "notes": "",
+    "rating": 0
+  },
+  "ripple": {
+    "flag": "none",
+    "notes": "FIX CENTER, SHOULD BE FAR RIGHT OF BOTH ROWS",
+    "rating": 3
+  },
+  "sine_wave": {
+    "flag": "reject",
+    "notes": "",
+    "rating": 0
+  },
+  "sine_wave_v2": {
+    "flag": "accept",
+    "notes": "",
+    "rating": 0
+  },
+  "sine_wave_v3": {
+    "flag": "none",
+    "notes": "maybe dim the whole things to make it more chill?",
+    "rating": 3
+  },
+  "tide": {
+    "flag": "reject",
+    "notes": "",
+    "rating": 0
+  },
+  "two_comets": {
+    "flag": "accept",
+    "notes": "",
+    "rating": 0
+  }
+}
