@@ -8,7 +8,7 @@
 import { initScene } from '../editor/scene.js';
 import { transpile, serialize } from './transpile.js';
 import { buildKnobs } from './knobs.js';
-import { PATTERNS, PRETTY } from './manifest.js';
+import { PATTERNS, UNVEILING, PRETTY } from './manifest.js';
 import { DIRECTIONAL, applyReverse } from './directional.js';
 import * as reviews from './reviews.js';
 
@@ -73,27 +73,32 @@ function rememberTuning() {
 // patternIds is dynamic: the server's live scan of patterns/ (built-ins +
 // studio-created variants), falling back to the static manifest. buildList()
 // (re)renders the left list from it after any add/rename/delete.
-let patternIds = [...PATTERNS];
+let patternIds = [...PATTERNS, ...UNVEILING];
 const liById = new Map();
 
-// The SozoBasic gallery, in firmware GAL_PATTERNS order. These render as a
-// numbered "folder" with a ▶ Play control that runs the whole sequence — fade
-// in, hold, fade out, next, loop — just like the firmware's gallery stage.
-const GALLERY_IDS = [...PATTERNS];
+// Playlists shown as numbered "folders" in the left panel. Each has a ▶ Play
+// control that runs its whole sequence — fade in, hold, fade out, next, loop —
+// like the firmware's gallery stage. `strip` is trimmed from member labels so
+// e.g. unv_tide shows as "Tide". Anything not in a playlist lands in Workspace.
+const PLAYLISTS = [
+  { key: 'sozobasic', title: 'SozoBasic Gallery', ids: PATTERNS,  strip: '' },
+  { key: 'unveiling', title: 'SozoUnveiling',     ids: UNVEILING, strip: 'unv_' },
+];
 const collapsed = new Set();
 
 // Gallery-player state (defined here because buildList() reads it at load time;
 // the player's functions live further down, near the render loop). Firmware runs
 // 120 s per pattern with a 5 s fade; the preview defaults are shorter so it's
-// watchable — both are adjustable in the folder header.
+// watchable — both are adjustable in the folder header. `playingKey` is which
+// playlist folder is currently playing (null = none).
 const GAL_KEY = 'sozo_studio_gallery';
-const gallery = { active: false, clips: [], idx: 0, clipStart: 0, lastNow: 0, holdSec: 8, fadeSec: 1.5 };
+const gallery = { active: false, playingKey: null, clips: [], idx: 0, clipStart: 0, lastNow: 0, holdSec: 8, fadeSec: 1.5 };
 (function loadGalleryCfg() {
   try { Object.assign(gallery, JSON.parse(localStorage.getItem(GAL_KEY)) || {}); } catch { /* ignore */ }
   gallery.active = false; gallery.clips = []; gallery.idx = 0;   // never persist runtime state
 })();
 
-function makeMemberLi(id, number) {
+function makeMemberLi(id, number, strip) {
   const li = document.createElement('li');
   li.dataset.id = id;
   li.className = 'in-group';
@@ -106,7 +111,7 @@ function makeMemberLi(id, number) {
   }
   const name = document.createElement('span');
   name.className = 'pname';
-  name.textContent = PRETTY(id);
+  name.textContent = PRETTY(strip && id.startsWith(strip) ? id.slice(strip.length) : id);
   const badge = document.createElement('span');
   badge.className = 'badge';
   li.append(name, badge);
@@ -132,10 +137,10 @@ function makeGroupHeader(key, title, count, withPlay) {
   if (withPlay) {
     const play = document.createElement('button');
     play.className = 'play-btn';
-    play.id = 'galleryPlay';
-    play.textContent = gallery.active ? '⏹' : '▶';
-    play.title = 'Play the whole gallery in sequence, like SozoBasic';
-    play.addEventListener('click', (ev) => { ev.stopPropagation(); toggleGallery(); });
+    play.id = 'play_' + key;
+    play.textContent = (gallery.active && gallery.playingKey === key) ? '⏹' : '▶';
+    play.title = 'Play this whole folder in sequence, like SozoBasic';
+    play.addEventListener('click', (ev) => { ev.stopPropagation(); toggleGallery(key); });
     li.appendChild(play);
   }
   li.addEventListener('click', () => {
@@ -173,19 +178,23 @@ function makeGalleryControls() {
 function buildList() {
   listEl.innerHTML = '';
   liById.clear();
-  const inGallery = GALLERY_IDS.filter((id) => patternIds.includes(id));
-  const extras = patternIds.filter((id) => !GALLERY_IDS.includes(id));
+  const claimed = new Set();
 
-  if (inGallery.length) {
-    makeGroupHeader('gallery', 'SozoBasic Gallery', inGallery.length, true);
-    if (!collapsed.has('gallery')) {
+  for (const pl of PLAYLISTS) {
+    const ids = pl.ids.filter((id) => patternIds.includes(id));
+    ids.forEach((id) => claimed.add(id));
+    if (!ids.length) continue;
+    makeGroupHeader(pl.key, pl.title, ids.length, true);
+    if (!collapsed.has(pl.key)) {
       makeGalleryControls();
-      inGallery.forEach((id, i) => makeMemberLi(id, i + 1));
+      ids.forEach((id, i) => makeMemberLi(id, i + 1, pl.strip));
     }
   }
+
+  const extras = patternIds.filter((id) => !claimed.has(id));
   if (extras.length) {
     makeGroupHeader('workspace', 'Workspace', extras.length, false);
-    if (!collapsed.has('workspace')) extras.forEach((id) => makeMemberLi(id, null));
+    if (!collapsed.has('workspace')) extras.forEach((id) => makeMemberLi(id, null, ''));
   }
   applyFilter();
   highlightGallery();
@@ -258,7 +267,7 @@ reviews.seedFromServer(new URL('./reviews.json', import.meta.url)).then((seeded)
 });
 
 async function selectPattern(id) {
-  if (gallery.active) { gallery.active = false; highlightGallery(); }
+  if (gallery.active) { gallery.active = false; gallery.playingKey = null; highlightGallery(); }
   for (const li of listEl.children) li.classList.toggle('active', li.dataset.id === id);
   setStatus(`loading ${id}…`);
   let source;
@@ -738,23 +747,31 @@ async function buildClip(id) {
   return { id, compiled, params: useParams, state };
 }
 
-function toggleGallery() { gallery.active ? stopGallery() : startGallery(); }
+// Play the folder if stopped (or a different folder is playing); stop if this
+// same folder is already playing.
+function toggleGallery(key) {
+  if (gallery.active && gallery.playingKey === key) stopGallery();
+  else startGallery(key);
+}
 
-async function startGallery() {
-  const ids = GALLERY_IDS.filter((id) => patternIds.includes(id));
-  if (!ids.length) { setStatus('no gallery patterns to play'); return; }
-  setStatus('loading gallery…');
+async function startGallery(key) {
+  const pl = PLAYLISTS.find((p) => p.key === key);
+  if (!pl) return;
+  const ids = pl.ids.filter((id) => patternIds.includes(id));
+  if (!ids.length) { setStatus(`no patterns to play in ${pl.title}`); return; }
+  setStatus(`loading ${pl.title}…`);
   try {
     const clips = [];
     for (const id of ids) {
       const clip = await buildClip(id);
       if (clip.compiled.ok) clips.push(clip);   // skip any that can't preview
     }
-    if (!clips.length) { setStatus('no playable gallery patterns'); return; }
+    if (!clips.length) { setStatus(`no playable patterns in ${pl.title}`); return; }
     gallery.clips = clips;
     gallery.idx = 0;
     gallery.clipStart = performance.now();
     gallery.lastNow = gallery.clipStart;
+    gallery.playingKey = key;
     gallery.active = true;
     highlightGallery();
   } catch (e) {
@@ -764,17 +781,20 @@ async function startGallery() {
 
 function stopGallery() {
   gallery.active = false;
+  gallery.playingKey = null;
   highlightGallery();
   if (current) resetState();   // hand the preview back to the selected pattern
   setStatus('gallery stopped');
 }
 
-// Reflect play state in the ▶/⏹ button and highlight the playing member row.
+// Reflect play state in every ▶/⏹ button and highlight the playing member row.
 function highlightGallery() {
   const activeId = gallery.active && gallery.clips[gallery.idx] ? gallery.clips[gallery.idx].id : null;
   for (const [id, ref] of liById) ref.li.classList.toggle('playing', id === activeId);
-  const btn = document.getElementById('galleryPlay');
-  if (btn) btn.textContent = gallery.active ? '⏹' : '▶';
+  for (const pl of PLAYLISTS) {
+    const btn = document.getElementById('play_' + pl.key);
+    if (btn) btn.textContent = (gallery.active && gallery.playingKey === pl.key) ? '⏹' : '▶';
+  }
 }
 
 function tickGallery() {
